@@ -22,9 +22,7 @@ def is_leap_year(year: int) -> bool:
     :rtype: bool
     """
 
-    if (year % 4 == 0 and year % 100 != 0) or year % 400 == 0:
-        return True
-    return False
+    return (year % 4 == 0 and year % 100 != 0) or year % 400 == 0
 
 
 def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
@@ -54,12 +52,12 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     year = int(maybe_dt[2])
 
     month_number_bounds = [1, 12]
-    NUMBER_OF_DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    number_of_days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     if is_leap_year(year):
-        NUMBER_OF_DAYS_IN_MONTH[1] = 29
+        number_of_days_in_month[1] = 29
     else:
-        NUMBER_OF_DAYS_IN_MONTH[1] = 28
-        max_day = NUMBER_OF_DAYS_IN_MONTH[month - 1]
+        number_of_days_in_month[1] = 28
+        max_day = number_of_days_in_month[month - 1]
     if (month < month_number_bounds[0] or month > month_number_bounds[1]) or (
         day < 1 or day > max_day
     ):
@@ -197,15 +195,15 @@ def details_handler(date: str) -> str:
                 f"Expenses: {stats_info[1]} rubles\n\n"
                 f"Breakdown (category: amount):"
             )
-        else:
-            return (
-                f"Your statistics as of {date}:\n"
-                f"Total capital: {stats_info[0]} rubles\n"
-                f"This month's loss: {stats_info[1] - stats_info[2]} rubles\n"
-                f"Income: {stats_info[2]} rubles\n"
-                f"Expenses: {stats_info[1]} rubles\n\n"
-                f"Breakdown (category: amount):"
-            )
+
+        return (
+            f"Your statistics as of {date}:\n"
+            f"Total capital: {stats_info[0]} rubles\n"
+            f"This month's loss: {stats_info[1] - stats_info[2]} rubles\n"
+            f"Income: {stats_info[2]} rubles\n"
+            f"Expenses: {stats_info[1]} rubles\n\n"
+            f"Breakdown (category: amount):"
+        )
     elif stats_info[2] - stats_info[1] >= 0:
         return (
             f"Your statistics as of {date}:\n"
