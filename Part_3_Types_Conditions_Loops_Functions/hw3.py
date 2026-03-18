@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-from calendar import month
-
-
 UNKNOWN_COMMAND_MSG = "Unknown command!"
 NONPOSITIVE_VALUE_MSG = "Value must be grater than zero!"
 INCORRECT_DATE_MSG = "Invalid date!"
@@ -40,15 +37,14 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     """
     if maybe_dt is None:
         return None
-    if len(maybe_dt.split("-")) != NUMBER_OF_DATE_PARTS:
-        return None
-    if (
+    if len(maybe_dt.split("-")) != NUMBER_OF_DATE_PARTS or (
         "--" in maybe_dt
         or maybe_dt[0] == "-"
         or maybe_dt[-1] == "-"
         or "---" in maybe_dt
     ):
         return None
+
     for char in maybe_dt:
         if char not in "0123456789-":
             return None
@@ -57,17 +53,16 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     month = int(maybe_dt[1])
     year = int(maybe_dt[2])
 
-    MONTH_NUMBER_BOUNDS = [1, 12]
+    month_number_bounds = [1, 12]
     NUMBER_OF_DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     if is_leap_year(year):
         NUMBER_OF_DAYS_IN_MONTH[1] = 29
     else:
         NUMBER_OF_DAYS_IN_MONTH[1] = 28
-    if month < 1 or month > 12:
-        return None
-
-    max_day = NUMBER_OF_DAYS_IN_MONTH[month - 1]
-    if day < 1 or day > max_day:
+        max_day = NUMBER_OF_DAYS_IN_MONTH[month - 1]
+    if (month < month_number_bounds[0] or month > month_number_bounds[1]) or (
+        day < 1 or day > max_day
+    ):
         return None
 
     return day, month, year
