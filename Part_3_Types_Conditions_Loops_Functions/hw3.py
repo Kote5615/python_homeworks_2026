@@ -194,4 +194,6 @@ def main() -> None:
             print(UNKNOWN_COMMAND_MSG)            
                 
 if __name__ == "__main__":
-    main()
+    main() 
+
+# trying to start tests
