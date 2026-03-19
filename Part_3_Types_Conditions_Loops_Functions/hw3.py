@@ -11,11 +11,8 @@ CategoryStat = tuple[str, float]
 CategoryStats = list[CategoryStat]
 StatsResult = tuple[float, float, float, CategoryStats]
 
-all_transactions: list[float | list[list[float | str]] | list[list[str | float]]] = [
-    0,
-    [],
-    [],
-]
+income_transactions: list[tuple[float, str]] = []
+cost_transactions: list[tuple[str, float, str]] = []
 
 
 def is_leap_year(year: int) -> bool:
@@ -83,7 +80,7 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
 
     day, month, year = map(int, maybe_dt.split("-"))
 
-    if check_date_bounds(day, month, year):
+    if not check_date_bounds(day, month, year):
         return None
 
     return day, month, year
@@ -95,8 +92,7 @@ def income_handler(amount: float, income_date: str) -> str:
     if extract_date(income_date) is None:
         return INCORRECT_DATE_MSG
 
-    all_transactions[1].append([amount, income_date])
-    all_transactions[0] += amount
+    income_transactions.append((amount, income_date))
     return OP_SUCCESS_MSG
 
 
@@ -106,8 +102,7 @@ def cost_handler(category: str, amount: float, cost_date: str) -> str:
     if extract_date(cost_date) is None:
         return INCORRECT_DATE_MSG
 
-    all_transactions[2].append([category, amount, cost_date])
-    all_transactions[0] -= amount
+    cost_transactions.append((category, amount, cost_date))
     return OP_SUCCESS_MSG
 
 
@@ -122,68 +117,79 @@ def check_year_bonds(first_year: int, second_year: int) -> bool | None:
 def is_not_later(first_date: str, second_date: str) -> bool:
     first = extract_date(first_date)
     second = extract_date(second_date)
+    if first is not None and second is not None:
+        year_check = check_year_bonds(first[2], second[2])
+        if year_check is not None:
+            return year_check
 
-    year_check = check_year_bonds(first[2], second[2])
-    if year_check is not None:
-        return year_check
+        if first[1] < second[1]:
+            return True
+        if first[1] > second[1]:
+            return False
 
-    if check_year_bonds is not None:
-        return check_year_bonds(first[2], second[2])
-
-    if first[1] < second[1]:
-        return True
-    if first[1] > second[1]:
-        return False
-
-    return first[0] <= second[0]
+        return first[0] <= second[0]
+    return False
 
 
 def count_capital(date: str) -> float:
     income_transaction_sum = sum(
-        income_transaction[0] for income_transaction in all_transactions[1] if is_not_later(income_transaction[1], date)
+        income_transaction[0] for income_transaction in income_transactions if is_not_later(income_transaction[1], date)
     )
     loss_transaction_sum = sum(
-        loss_transaction[1] for loss_transaction in all_transactions[2] if is_not_later(loss_transaction[2], date)
+        loss_transaction[1] for loss_transaction in cost_transactions if is_not_later(loss_transaction[2], date)
     )
     return income_transaction_sum - loss_transaction_sum
 
 
 def count_loss(target_month: int, target_year: int) -> float:
-    return sum(
-        loss_in_curr_transaction[1]
-        for loss_in_curr_transaction in all_transactions[2]
-        if extract_date(loss_in_curr_transaction[2]) is not None
-        and extract_date(loss_in_curr_transaction[2])[2] == target_year
-        and extract_date(loss_in_curr_transaction[2])[1] == target_month
-    )
+    total = float(0)
+
+    for transaction in cost_transactions:
+        parsed_date = extract_date(transaction[2])
+        if parsed_date is None:
+            continue
+
+        _, month, year = parsed_date
+        if year == target_year and month == target_month:
+            total += transaction[1]
+
+    return total
 
 
 def count_profit(target_month: int, target_year: int) -> float:
-    return sum(
-        profit_in_curr_transaction[0]
-        for profit_in_curr_transaction in all_transactions[1]
-        if extract_date(profit_in_curr_transaction[1]) is not None
-        and extract_date(profit_in_curr_transaction[1])[2] == target_year
-        and extract_date(profit_in_curr_transaction[1])[1] == target_month
-    )
+    total = float(0)
+
+    for transaction in income_transactions:
+        parsed_date = extract_date(transaction[1])
+        if parsed_date is None:
+            continue
+
+        _, month, year = parsed_date
+        if year == target_year and month == target_month:
+            total += transaction[0]
+
+    return total
 
 
-def extract_category_and_amount(target_month: int, target_year: int) -> list[tuple[str, float]]:
-    loss_list = [
-        loss_in_curr_transaction
-        for loss_in_curr_transaction in all_transactions[2]
-        if extract_date(loss_in_curr_transaction[2]) is not None
-        and extract_date(loss_in_curr_transaction[2])[2] == target_year
-        and extract_date(loss_in_curr_transaction[2])[1] == target_month
-    ]
+def extract_category_and_amount(
+    target_month: int,
+    target_year: int,
+) -> list[tuple[str, float]]:
+    categories: dict[str, float] = {}
 
-    dict_of_categories: dict[str, float] = {}
-    for loss_transaction in loss_list:
-        category = loss_transaction[0]
-        if category not in dict_of_categories:
-            dict_of_categories[category] = 0
-        dict_of_categories[category] += loss_transaction[1]
-    return list(dict_of_categories.items())
+    for transaction in cost_transactions:
+        parsed_date = extract_date(transaction[2])
+        if parsed_date is None:
+            continue
+
+        _, month, _ = parsed_date
+        if parsed_date[2] == target_year and month == target_month:
+            category = transaction[0]
+            if category not in categories:
+                categories[category] = float(0)
+            categories[category] += transaction[1]
+
+    return list(categories.items())
 
 
 def stats_handler(date: str) -> StatsResult:
@@ -204,19 +210,51 @@ def stats_handler(date: str) -> StatsResult:
     )
 
 
-def sum_into_float(maybe_float: str) -> float | None:
+def check_comma_in_front_or_back(maybe_float: str) -> bool:
+    return maybe_float[0] in ",." or maybe_float[-1] in ",."
+
+
+NUM_PARTS_NUMBER = 2
+
+
+def check_comma_in_middle(maybe_float: str) -> bool | None:
+    parts_number = len(maybe_float.split(","))
+    if "," in maybe_float and parts_number == NUM_PARTS_NUMBER:
+        return True
+    parts_number = len(maybe_float.split("."))
+    if "." in maybe_float and parts_number == NUM_PARTS_NUMBER:
+        return True
+    return None
+
+
+def check_empty_or_invalid(maybe_float: str) -> bool | None:
+    if len(maybe_float) == 0:
+        return None
     for char in maybe_float:
-        if char not in "0123456789,.":
+        if char not in "0123456789,." or maybe_float == " ":
             return None
     for char in maybe_float:
         if char in ".," and maybe_float.count(char) > 1:
             return None
     num_of_commas = maybe_float.count(",") + maybe_float.count(".")
-    if ("." in maybe_float or num_of_commas == 0) and maybe_float[0] != ".":
+    if num_of_commas > 1:
+        return None
+    return True
+
+
+def sum_into_float(maybe_float: str) -> float | None:
+    if check_empty_or_invalid(maybe_float) is None:
+        return None
+    num_of_commas = maybe_float.count(",") + maybe_float.count(".")
+    if (
+        ("." in maybe_float and check_comma_in_middle(maybe_float)) or num_of_commas == 0
+    ) and not check_comma_in_front_or_back(maybe_float):
         return float(maybe_float)
     num_parts = maybe_float.split(",")
     before_comma = num_parts[0]
     after_comma = num_parts[1]
+    if not check_comma_in_middle(maybe_float):
+        return None
     return float(f"{before_comma}.{after_comma}")
 
 
@@ -225,19 +263,23 @@ def format_category_stats(category_stats: CategoryStats) -> str:
 
     for index, category_stat in enumerate(category_stats, start=1):
         category, amount = category_stat
-        lines.append(f"{index}. {category}: {amount}")
+        lines.append(f"{index}. {category}: {amount:.2f}")
 
     return "\n".join(lines)
 
 
+def expense_or_income(amount: float) -> str:
+    return "profit" if amount >= 0 else "loss"
+
+
 def details_handler(date: str) -> str:
     capital, expenses, income, category_stats = stats_handler(date)
-
     lines = [
         f"Your statistics as of {date}:",
-        f"Total capital: {capital} rubles",
-        f"Income: {income} rubles",
-        f"Expenses: {expenses} rubles",
+        f"Total capital: {capital:.2f} rubles",
+        f"{expense_or_income(income - expenses)}: {abs(income - expenses):.2f} rubles",
+        f"Income: {income:.2f} rubles",
+        f"Expenses: {expenses:.2f} rubles",
         "",
         "Breakdown (category: amount):",
     ]
@@ -306,9 +348,9 @@ def process_command(parts: list[str]) -> str:
 def main() -> None:
     command = input()
     while command != "exit":
-        command = input()
         parts = command.split()
         print(process_command(parts))
+        command = input()
 
 
 if __name__ == "__main__":
