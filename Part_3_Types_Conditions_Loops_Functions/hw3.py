@@ -26,6 +26,7 @@ def get_expense_categories() -> dict[str, tuple[str, ...]]:
         "Other": ("SomeCategory", "SomeOtherCategory"),
     }
 
+
 income_transactions: list[tuple[float, str]] = []
 cost_transactions: list[tuple[str, float, str]] = []
 
