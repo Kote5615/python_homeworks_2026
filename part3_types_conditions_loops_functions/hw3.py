@@ -36,8 +36,13 @@ financial_transactions_storage: list[dict[str, Any]] = []
 def parsed_date_to_string(date: tuple[int, int, int] | None) -> str | None:
     if date is None:
         return None
+
     day, month, year = date
-    return "{0:02d}-{1:02d}-{2:04d}".format(day, month, year)
+    day_str = str(day).rjust(2, "0")
+    month_str = str(month).rjust(2, "0")
+    year_str = str(year)
+
+    return DATE_SEP.join((day_str, month_str, year_str))
 
 
 def is_leap_year(year: int) -> bool:
