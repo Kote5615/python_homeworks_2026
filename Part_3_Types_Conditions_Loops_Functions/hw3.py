@@ -3,6 +3,7 @@
 UNKNOWN_COMMAND_MSG = "Unknown command!"
 NONPOSITIVE_VALUE_MSG = "Value must be grater than zero!"
 INCORRECT_DATE_MSG = "Invalid date!"
+INCORRECT_CATEGORY_MSG = "Category not exists!"
 OP_SUCCESS_MSG = "Added"
 NUMBER_OF_DATE_PARTS = 3
 DATE_SEP = "-"
@@ -10,6 +11,15 @@ FEBRUARY = 2
 CategoryStat = tuple[str, float]
 CategoryStats = list[CategoryStat]
 StatsResult = tuple[float, float, float, CategoryStats]
+
+
+def get_expense_categories() -> dict[str, tuple[str, ...]]:
+    return {
+        "Food": ("FastFood", "Cafe"),
+        "Gifts": ("Gifts", "Presents"),
+        "Other": ("Stuff", "idk"),
+    }
+
 
 income_transactions: list[tuple[float, str]] = []
 cost_transactions: list[tuple[str, float, str]] = []
@@ -96,12 +106,46 @@ def income_handler(amount: float, income_date: str) -> str:
     return OP_SUCCESS_MSG
 
 
+CORRECT_PARTS_NUMBER = 2
+
+
+def is_valid_category(category: str) -> bool:
+    if "::" not in category:
+        return False
+
+    parts = category.split("::")
+    if len(parts) != CORRECT_PARTS_NUMBER:
+        return False
+
+    common_category = parts[0]
+    target_category = parts[1]
+
+    if common_category not in get_expense_categories():
+        return False
+
+    return target_category in get_expense_categories()[common_category]
+
+
+def categories_list_string() -> str:
+    lines = []
+
+    for common_category, targets in get_expense_categories().items():
+        lines.extend(f"{common_category}::{target_category}" for target_category in targets)
+
+    return "\n".join(lines)
+
+
+def category_error_with_list() -> str:
+    return f"{INCORRECT_CATEGORY_MSG}\n{categories_list_string()}"
+
+
 def cost_handler(category: str, amount: float, cost_date: str) -> str:
     if amount <= 0:
         return NONPOSITIVE_VALUE_MSG
     if extract_date(cost_date) is None:
         return INCORRECT_DATE_MSG
-
+    if not is_valid_category(category):
+        return category_error_with_list()
     cost_transactions.append((category, amount, cost_date))
     return OP_SUCCESS_MSG
 
@@ -141,55 +185,86 @@ def count_capital(date: str) -> float:
     return income_transaction_sum - loss_transaction_sum
 
 
-def count_loss(target_month: int, target_year: int) -> float:
+def count_loss(date: str) -> float:
     total = float(0)
 
     for transaction in cost_transactions:
-        parsed_date = extract_date(transaction[2])
-        if parsed_date is None:
-            continue
-
-        _, month, year = parsed_date
-        if year == target_year and month == target_month:
+        if is_earlier_than_target_date(transaction[2], date):
             total += transaction[1]
 
     return total
 
 
-def count_profit(target_month: int, target_year: int) -> float:
+def count_profit(date: str) -> float:
     total = float(0)
 
     for transaction in income_transactions:
-        parsed_date = extract_date(transaction[1])
-        if parsed_date is None:
-            continue
-
-        _, month, year = parsed_date
-        if year == target_year and month == target_month:
+        if is_earlier_than_target_date(transaction[1], date):
             total += transaction[0]
 
     return total
 
 
-def extract_category_and_amount(
-    target_month: int,
-    target_year: int,
-) -> list[tuple[str, float]]:
+def extract_target_category(category: str) -> str:
+    return category.split("::")[1]
+
+
+def extract_category_and_amount(date: str) -> list[tuple[str, float]]:
     categories: dict[str, float] = {}
 
     for transaction in cost_transactions:
-        parsed_date = extract_date(transaction[2])
-        if parsed_date is None:
-            continue
+        if is_earlier_than_target_date(transaction[2], date):
+            target_category = extract_target_category(transaction[0])
 
-        _, month, _ = parsed_date
-        if parsed_date[2] == target_year and month == target_month:
-            category = transaction[0]
-            if category not in categories:
-                categories[category] = float(0)
-            categories[category] += transaction[1]
+            if target_category not in categories:
+                categories[target_category] = float(0)
+
+            categories[target_category] += transaction[1]
 
     return list(categories.items())
+
+
+def get_year(date: tuple[int, int, int]) -> int:
+    return date[2]
+
+
+def get_month(date: tuple[int, int, int]) -> int:
+    return date[1]
+
+
+def get_day(date: tuple[int, int, int]) -> int:
+    return date[0]
+
+
+Date = tuple[int, int, int]
+
+
+def is_same_year(date1: Date, date2: Date) -> bool:
+    return get_year(date1) == get_year(date2)
+
+
+def is_same_month(date1: Date, date2: Date) -> bool:
+    return is_same_year(date1, date2) and get_month(date1) == get_month(date2)
+
+
+def is_not_later_parsed(date1: Date, date2: Date) -> bool:
+    if get_year(date1) != get_year(date2):
+        return get_year(date1) < get_year(date2)
+
+    if get_month(date1) != get_month(date2):
+        return get_month(date1) < get_month(date2)
+
+    return get_day(date1) <= get_day(date2)
+
+
+def is_earlier_than_target_date(transaction_date: str, target_date: str) -> bool:
+    parsed_transaction = extract_date(transaction_date)
+    parsed_target = extract_date(target_date)
+
+    if parsed_transaction is None or parsed_target is None:
+        return False
+
+    return is_same_month(parsed_transaction, parsed_target) and is_not_later_parsed(parsed_transaction, parsed_target)
 
 
 def stats_handler(date: str) -> StatsResult:
@@ -197,15 +272,13 @@ def stats_handler(date: str) -> StatsResult:
     if parsed_date is None:
         return 0, 0, 0, []
 
-    _, month, year = parsed_date
-
-    category_stats = extract_category_and_amount(month, year)
+    category_stats = extract_category_and_amount(date)
     category_stats.sort(key=lambda category: category[0])
 
     return (
         count_capital(date),
-        count_loss(month, year),
-        count_profit(month, year),
+        count_loss(date),
+        count_profit(date),
         category_stats,
     )
 
@@ -277,11 +350,11 @@ def details_handler(date: str) -> str:
     lines = [
         f"Your statistics as of {date}:",
         f"Total capital: {capital:.2f} rubles",
-        f"{expense_or_income(income - expenses)}: {abs(income - expenses):.2f} rubles",
+        f"This month, the {expense_or_income(income - expenses)} amounted to {abs(income - expenses):.2f} rubles.",
         f"Income: {income:.2f} rubles",
         f"Expenses: {expenses:.2f} rubles",
         "",
-        "Breakdown (category: amount):",
+        "Details (category: amount):",
     ]
 
     if category_stats:
@@ -308,7 +381,15 @@ def income(parts: list[str]) -> str:
     return income_handler(amount, parts[2])
 
 
+LENGTH_OF_COST_CATEGORIES_COMMAND = 2
+
+
 def cost(parts: list[str]) -> str:
+    if len(parts) == LENGTH_OF_COST_CATEGORIES_COMMAND:
+        if parts[0] == "cost" and parts[1] == "categories":
+            return categories_list_string()
+        return UNKNOWN_COMMAND_MSG
+
     if len(parts) != LENGTH_OF_COST_COMMAND or parts[0] != "cost":
         return UNKNOWN_COMMAND_MSG
 
