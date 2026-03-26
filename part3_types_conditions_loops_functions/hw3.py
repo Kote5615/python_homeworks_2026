@@ -236,10 +236,7 @@ def get_transaction_value(transaction: dict[str, Any], target_date: str) -> floa
 
 
 def count_capital(date: str) -> float:
-    return sum(
-        get_transaction_value(transaction, date)
-        for transaction in financial_transactions_storage
-    )
+    return sum(get_transaction_value(transaction, date) for transaction in financial_transactions_storage)
 
 
 def count_loss(date: str) -> float:
@@ -281,15 +278,17 @@ def extract_target_category(category: str) -> str:
 
 
 def get_cleaned_expense(
-        transaction: dict[str, Any],
-        date: str,
+    transaction: dict[str, Any],
+    date: str,
 ) -> tuple[str, float] | None:
     if transaction[FIELD_TYPE] != COST_VAL:
         return None
 
     transaction_date_str = parsed_date_to_string(transaction[FIELD_DATE])
-    date_is_invalid = transaction_date_str is None
-    if date_is_invalid or not is_earlier_than_target_date(transaction_date_str, date):
+    if transaction_date_str is None:
+        return None
+
+    if not is_earlier_than_target_date(transaction_date_str, date):
         return None
 
     category = extract_target_category(transaction["category"])
@@ -404,7 +403,7 @@ def sum_into_float(maybe_float: str) -> float | None:
         return None
     num_of_commas = maybe_float.count(",") + maybe_float.count(".")
     if (
-            ("." in maybe_float and check_comma_in_middle(maybe_float)) or num_of_commas == 0
+        ("." in maybe_float and check_comma_in_middle(maybe_float)) or num_of_commas == 0
     ) and not check_comma_in_front_or_back(maybe_float):
         return float(maybe_float)
     num_parts = maybe_float.split(",")
