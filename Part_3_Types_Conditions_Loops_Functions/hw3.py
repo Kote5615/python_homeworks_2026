@@ -13,13 +13,17 @@ CategoryStats = list[CategoryStat]
 StatsResult = tuple[float, float, float, CategoryStats]
 
 
-def get_expense_categories() -> dict[str, tuple[str, ...]]:
-    return {
-        "Food": ("FastFood", "Cafe"),
-        "Gifts": ("Gifts", "Presents"),
-        "Other": ("Stuff", "idk"),
-    }
-
+EXPENSE_CATEGORIES = {
+    "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
+    "Transport": ("Taxi", "Public transport", "Gas", "Car service"),
+    "Housing": ("Rent", "Utilities", "Repairs", "Furniture"),
+    "Health": ("Pharmacy", "Doctors", "Dentist", "Lab tests"),
+    "Entertainment": ("Movies", "Concerts", "Games", "Subscriptions"),
+    "Clothing": ("Outerwear", "Casual", "Shoes", "Accessories"),
+    "Education": ("Courses", "Books", "Tutors"),
+    "Communications": ("Mobile", "Internet", "Subscriptions"),
+    "Other": ("SomeCategory", "SomeOtherCategory"),
+}
 
 income_transactions: list[tuple[float, str]] = []
 cost_transactions: list[tuple[str, float, str]] = []
@@ -120,23 +124,23 @@ def is_valid_category(category: str) -> bool:
     common_category = parts[0]
     target_category = parts[1]
 
-    if common_category not in get_expense_categories():
+    if common_category not in EXPENSE_CATEGORIES:
         return False
 
-    return target_category in get_expense_categories()[common_category]
+    return target_category in EXPENSE_CATEGORIES[common_category]
 
 
-def categories_list_string() -> str:
+def cost_categories_handler() -> str:
     lines: list[str] = []
 
-    for common_category, targets in get_expense_categories().items():
+    for common_category, targets in EXPENSE_CATEGORIES.items():
         lines.extend(f"{common_category}::{target_category}" for target_category in targets)
 
     return "\n".join(lines)
 
 
 def category_error_with_list() -> str:
-    return f"{INCORRECT_CATEGORY_MSG}\n{categories_list_string()}"
+    return f"{INCORRECT_CATEGORY_MSG}\n{cost_categories_handler()}"
 
 
 def cost_handler(category: str, amount: float, cost_date: str) -> str:
@@ -387,7 +391,7 @@ LENGTH_OF_COST_CATEGORIES_COMMAND = 2
 def cost(parts: list[str]) -> str:
     if len(parts) == LENGTH_OF_COST_CATEGORIES_COMMAND:
         if parts[0] == "cost" and parts[1] == "categories":
-            return categories_list_string()
+            return cost_categories_handler()
         return UNKNOWN_COMMAND_MSG
 
     if len(parts) != LENGTH_OF_COST_COMMAND or parts[0] != "cost":
