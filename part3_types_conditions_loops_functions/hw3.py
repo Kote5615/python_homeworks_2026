@@ -260,8 +260,8 @@ def extract_target_category(category: str) -> str:
 
 
 def get_cleaned_expense(
-        transaction: dict[str, Any],
-        date: str,
+    transaction: dict[str, Any],
+    date: str,
 ) -> tuple[str, float] | None:
     if transaction[FIELD_TYPE] != COST_VAL:
         return None
