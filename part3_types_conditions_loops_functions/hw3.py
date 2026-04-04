@@ -64,7 +64,8 @@ def check_date_format(maybe_dt: str) -> bool:
         return False
     if [len(part) for part in parts] != [2, 2, 4]:
         return False
-    return all(part in "0123456789" for part in parts)
+    combined = "".join(parts)
+    return all(char in "0123456789" for char in combined)
 
 
 DAYS_IN_MONTH = (
