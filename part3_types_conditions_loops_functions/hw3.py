@@ -35,7 +35,7 @@ EXPENSE_CATEGORIES = {
 financial_transactions_storage: list[dict[str, Any]] = []
 
 
-def parsed_date_to_string(date: tuple[int, int, int] | None) -> str | None:
+def _parsed_date_to_string(date: tuple[int, int, int] | None) -> str | None:
     if date is None:
         return None
 
@@ -47,7 +47,7 @@ def parsed_date_to_string(date: tuple[int, int, int] | None) -> str | None:
     return DATE_SEP.join((day_str, month_str, year_str))
 
 
-def is_leap_year(year: int) -> bool:
+def _is_leap_year(year: int) -> bool:
     """
     Для заданного года определяет: високосный (True) или невисокосный (False).
 
@@ -59,7 +59,7 @@ def is_leap_year(year: int) -> bool:
     return leap or year % 400 == 0
 
 
-def check_date_format(maybe_dt: str) -> bool:
+def _check_date_format(maybe_dt: str) -> bool:
     parts = maybe_dt.split("-")
     if len(parts) != NUMBER_OF_DATE_PARTS:
         return False
@@ -85,18 +85,18 @@ DAYS_IN_MONTH = (
 )
 
 
-def check_date_bounds(day: int, month: int, year: int) -> bool:
+def _check_date_bounds(day: int, month: int, year: int) -> bool:
     if month < 1 or month > len(DAYS_IN_MONTH):
         return False
 
     max_day = DAYS_IN_MONTH[month - 1]
-    if month == FEBRUARY and is_leap_year(year):
+    if month == FEBRUARY and _is_leap_year(year):
         max_day = 29
 
     return 1 <= day <= max_day
 
 
-def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
+def _extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     """
     Парсит дату формата DD-MM-YYYY из строки.
 
@@ -104,19 +104,19 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     :return: typle формата (день, месяц, год) или None, если дата неправильная.
     :rtype: tuple[int, int, int] | None
     """
-    if not check_date_format(maybe_dt):
+    if not _check_date_format(maybe_dt):
         return None
 
     day, month, year = map(int, maybe_dt.split("-"))
 
-    if not check_date_bounds(day, month, year):
+    if not _check_date_bounds(day, month, year):
         return None
 
     return day, month, year
 
 
 def income_handler(amount: float, income_date: str) -> str:
-    parsed_date = extract_date(income_date)
+    parsed_date = _extract_date(income_date)
 
     if amount <= 0:
         financial_transactions_storage.append({})
@@ -139,7 +139,7 @@ def income_handler(amount: float, income_date: str) -> str:
 CORRECT_PARTS_CATEGORIES_NUMBER = 2
 
 
-def is_valid_category(category: str) -> bool:
+def _is_valid_category(category: str) -> bool:
     if "::" not in category:
         return False
 
@@ -166,7 +166,7 @@ def cost_categories_handler() -> str:
 
 
 def cost_handler(category: str, amount: float, cost_date: str) -> str:
-    parsed_date = extract_date(cost_date)
+    parsed_date = _extract_date(cost_date)
 
     if amount <= 0:
         financial_transactions_storage.append({})
@@ -176,7 +176,7 @@ def cost_handler(category: str, amount: float, cost_date: str) -> str:
         financial_transactions_storage.append({})
         return INCORRECT_DATE_MSG
 
-    if not is_valid_category(category):
+    if not _is_valid_category(category):
         financial_transactions_storage.append({})
         return NOT_EXISTS_CATEGORY
 
@@ -191,9 +191,9 @@ def cost_handler(category: str, amount: float, cost_date: str) -> str:
     return OP_SUCCESS_MSG
 
 
-def is_not_later(first_date_str: str, second_date_str: str) -> bool:
-    first = extract_date(first_date_str)
-    second = extract_date(second_date_str)
+def _is_not_later(first_date_str: str, second_date_str: str) -> bool:
+    first = _extract_date(first_date_str)
+    second = _extract_date(second_date_str)
     if first is None or second is None:
         return False
     first_parsed = [first[2], first[1], first[0]]
@@ -203,10 +203,10 @@ def is_not_later(first_date_str: str, second_date_str: str) -> bool:
     return False
 
 
-def get_transaction_value(transaction: dict[str, Any], target_date: str) -> float:
-    transaction_date_str = parsed_date_to_string(transaction[FIELD_DATE])
+def _get_transaction_value(transaction: dict[str, Any], target_date: str) -> float:
+    transaction_date_str = _parsed_date_to_string(transaction[FIELD_DATE])
 
-    if transaction_date_str is None or not is_not_later(transaction_date_str, target_date):
+    if transaction_date_str is None or not _is_not_later(transaction_date_str, target_date):
         return float(0)
 
     amount = transaction[FIELD_AMOUNT]
@@ -218,71 +218,71 @@ def get_transaction_value(transaction: dict[str, Any], target_date: str) -> floa
     return float(0)
 
 
-def count_capital(date: str) -> float:
-    return sum(get_transaction_value(transaction, date) for transaction in financial_transactions_storage)
+def _count_capital(date: str) -> float:
+    return sum(_get_transaction_value(transaction, date) for transaction in financial_transactions_storage)
 
 
-def count_loss(date: str) -> float:
+def _count_loss(date: str) -> float:
     total = float(0)
 
     for transaction in financial_transactions_storage:
         if transaction[FIELD_TYPE] != COST_VAL:
             continue
 
-        transaction_date = parsed_date_to_string(transaction[FIELD_DATE])
+        transaction_date = _parsed_date_to_string(transaction[FIELD_DATE])
         if transaction_date is None:
             continue
 
-        if is_earlier_than_target_date(transaction_date, date):
+        if _is_earlier_than_target_date(transaction_date, date):
             total += transaction[FIELD_AMOUNT]
 
     return total
 
 
-def count_profit(date: str) -> float:
+def _count_profit(date: str) -> float:
     total = float(0)
 
     for transaction in financial_transactions_storage:
         if transaction[FIELD_TYPE] != INCOME_VAL:
             continue
 
-        transaction_date = parsed_date_to_string(transaction[FIELD_DATE])
+        transaction_date = _parsed_date_to_string(transaction[FIELD_DATE])
         if transaction_date is None:
             continue
 
-        if is_earlier_than_target_date(transaction_date, date):
+        if _is_earlier_than_target_date(transaction_date, date):
             total += transaction[FIELD_AMOUNT]
 
     return total
 
 
-def extract_target_category(category: str) -> str:
+def _extract_target_category(category: str) -> str:
     return category.split("::")[1]
 
 
-def get_cleaned_expense(
+def _get_cleaned_expense(
     transaction: dict[str, Any],
     date: str,
 ) -> tuple[str, float] | None:
     if transaction[FIELD_TYPE] != COST_VAL:
         return None
 
-    transaction_date_str = parsed_date_to_string(transaction[FIELD_DATE])
+    transaction_date_str = _parsed_date_to_string(transaction[FIELD_DATE])
     if transaction_date_str is None:
         return None
 
-    if not is_earlier_than_target_date(transaction_date_str, date):
+    if not _is_earlier_than_target_date(transaction_date_str, date):
         return None
 
-    category = extract_target_category(transaction["category"])
+    category = _extract_target_category(transaction["category"])
     return category, float(transaction[FIELD_AMOUNT])
 
 
-def extract_category_and_amount(date: str) -> list[tuple[str, float]]:
+def _extract_category_and_amount(date: str) -> list[tuple[str, float]]:
     categories: dict[str, float] = {}
 
     for transaction in financial_transactions_storage:
-        result = get_cleaned_expense(transaction, date)
+        result = _get_cleaned_expense(transaction, date)
         if result:
             category, amount = result
             categories[category] = categories.get(category, float(0)) + amount
@@ -290,9 +290,9 @@ def extract_category_and_amount(date: str) -> list[tuple[str, float]]:
     return list(categories.items())
 
 
-def is_earlier_than_target_date(transaction_date: str, target_date: str) -> bool:
-    transaction = extract_date(transaction_date)
-    target = extract_date(target_date)
+def _is_earlier_than_target_date(transaction_date: str, target_date: str) -> bool:
+    transaction = _extract_date(transaction_date)
+    target = _extract_date(target_date)
     if transaction is None or target is None:
         return False
     transaction_parsed = [transaction[2], transaction[1]]
@@ -304,22 +304,22 @@ def is_earlier_than_target_date(transaction_date: str, target_date: str) -> bool
 
 
 def stats_handler(date: str) -> StatsResult:
-    parsed_date = extract_date(date)
+    parsed_date = _extract_date(date)
     if parsed_date is None:
         return 0, 0, 0, []
 
-    category_stats = extract_category_and_amount(date)
+    category_stats = _extract_category_and_amount(date)
     category_stats.sort(key=lambda category: category[0])
 
     return (
-        count_capital(date),
-        count_loss(date),
-        count_profit(date),
+        _count_capital(date),
+        _count_loss(date),
+        _count_profit(date),
         category_stats,
     )
 
 
-def sum_into_float(maybe_float: str) -> float | None:
+def _sum_into_float(maybe_float: str) -> float | None:
     maybe_float = maybe_float.replace(",", ".")
     if len(maybe_float) == 0:
         return None
@@ -337,7 +337,7 @@ def sum_into_float(maybe_float: str) -> float | None:
     return float(maybe_float)
 
 
-def format_category_stats(category_stats: CategoryStats) -> str:
+def _format_category_stats(category_stats: CategoryStats) -> str:
     lines = []
 
     for index, category_stat in enumerate(category_stats, start=1):
@@ -347,16 +347,16 @@ def format_category_stats(category_stats: CategoryStats) -> str:
     return "\n".join(lines)
 
 
-def expense_or_income(amount: float) -> str:
+def _expense_or_income(amount: float) -> str:
     return "profit" if amount >= 0 else "loss"
 
 
-def details_handler(date: str) -> str:
+def _details_handler(date: str) -> str:
     capital, expenses, income, category_stats = stats_handler(date)
     lines = [
         f"Your statistics as of {date}:",
         f"Total capital: {capital:.2f} rubles",
-        f"This month, the {expense_or_income(income - expenses)} amounted to {abs(income - expenses):.2f} rubles.",
+        f"This month, the {_expense_or_income(income - expenses)} amounted to {abs(income - expenses):.2f} rubles.",
         f"Income: {income:.2f} rubles",
         f"Expenses: {expenses:.2f} rubles",
         "",
@@ -364,7 +364,7 @@ def details_handler(date: str) -> str:
     ]
 
     if category_stats:
-        lines.append(format_category_stats(category_stats))
+        lines.append(_format_category_stats(category_stats))
 
     return "\n".join(lines)
 
@@ -378,7 +378,7 @@ def income(parts: list[str]) -> str:
     if len(parts) != LENGTH_OF_INCOME_COMMAND or parts[0] != "income":
         return UNKNOWN_COMMAND_MSG
 
-    amount = sum_into_float(parts[1])
+    amount = _sum_into_float(parts[1])
     if amount is None:
         return UNKNOWN_COMMAND_MSG
 
@@ -397,7 +397,7 @@ def cost(parts: list[str]) -> str:
     if len(parts) != LENGTH_OF_COST_COMMAND or parts[0] != COST_VAL:
         return UNKNOWN_COMMAND_MSG
 
-    amount = sum_into_float(parts[2])
+    amount = _sum_into_float(parts[2])
     if amount is None:
         return UNKNOWN_COMMAND_MSG
 
@@ -408,10 +408,10 @@ def stats(parts: list[str]) -> str:
     if len(parts) != LENGTH_OF_STATS_COMMAND or parts[0] != "stats":
         return UNKNOWN_COMMAND_MSG
 
-    if extract_date(parts[1]) is None:
+    if _extract_date(parts[1]) is None:
         return INCORRECT_DATE_MSG
 
-    return details_handler(parts[1])
+    return _details_handler(parts[1])
 
 
 def process_command(parts: list[str]) -> str:
