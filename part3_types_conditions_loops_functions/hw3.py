@@ -17,6 +17,7 @@ FIELD_AMOUNT = "amount"
 FIELD_DATE = "date"
 INCOME_VAL = "income"
 COST_VAL = "cost"
+Date = tuple[int, int, int]
 
 EXPENSE_CATEGORIES = {
     "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
@@ -58,15 +59,12 @@ def is_leap_year(year: int) -> bool:
 
 
 def check_date_format(maybe_dt: str) -> bool:
-    if maybe_dt is None:
+    parts = maybe_dt.split("-")
+    if len(parts) != NUMBER_OF_DATE_PARTS:
         return False
-    if len(maybe_dt.split(DATE_SEP)) != NUMBER_OF_DATE_PARTS:
+    if [len(part) for part in parts] != [2, 2, 4]:
         return False
-    date_sep_in_front_or_back = maybe_dt[0] == DATE_SEP or maybe_dt[-1] == DATE_SEP
-    if "--" in maybe_dt or date_sep_in_front_or_back:
-        return False
-
-    return all(char in "0123456789-" for char in maybe_dt)
+    return all(part in "0123456789" for part in parts)
 
 
 DAYS_IN_MONTH = (
@@ -136,7 +134,7 @@ def income_handler(amount: float, income_date: str) -> str:
     return OP_SUCCESS_MSG
 
 
-CORRECT_PARTS_NUMBER = 2
+CORRECT_PARTS_CATEGORIES_NUMBER = 2
 
 
 def is_valid_category(category: str) -> bool:
@@ -144,7 +142,7 @@ def is_valid_category(category: str) -> bool:
         return False
 
     parts = category.split("::")
-    if len(parts) != CORRECT_PARTS_NUMBER:
+    if len(parts) != CORRECT_PARTS_CATEGORIES_NUMBER:
         return False
 
     common_category = parts[0]
@@ -163,10 +161,6 @@ def cost_categories_handler() -> str:
         lines.extend(f"{common_category}::{target_category}" for target_category in targets)
 
     return "\n".join(lines)
-
-
-def category_error_with_list() -> str:
-    return f"{NOT_EXISTS_CATEGORY}\n{cost_categories_handler()}"
 
 
 def cost_handler(category: str, amount: float, cost_date: str) -> str:
@@ -195,28 +189,15 @@ def cost_handler(category: str, amount: float, cost_date: str) -> str:
     return OP_SUCCESS_MSG
 
 
-def check_year_bonds(first_year: int, second_year: int) -> bool | None:
-    if first_year < second_year:
-        return True
-    if first_year > second_year:
+def is_not_later(first_date_str: str, second_date_str: str) -> bool:
+    first = extract_date(first_date_str)
+    second = extract_date(second_date_str)
+    if first is None or second is None:
         return False
-    return None
-
-
-def is_not_later(first_date: str, second_date: str) -> bool:
-    first = extract_date(first_date)
-    second = extract_date(second_date)
-    if first is not None and second is not None:
-        year_check = check_year_bonds(first[2], second[2])
-        if year_check is not None:
-            return year_check
-
-        if first[1] < second[1]:
-            return True
-        if first[1] > second[1]:
-            return False
-
-        return first[0] <= second[0]
+    first_parsed = [first[2], first[1], first[0]]
+    second_parsed = [second[2], second[1], second[0]]
+    if first and second:
+        return first_parsed <= second_parsed
     return False
 
 
@@ -278,8 +259,8 @@ def extract_target_category(category: str) -> str:
 
 
 def get_cleaned_expense(
-    transaction: dict[str, Any],
-    date: str,
+        transaction: dict[str, Any],
+        date: str,
 ) -> tuple[str, float] | None:
     if transaction[FIELD_TYPE] != COST_VAL:
         return None
@@ -307,47 +288,17 @@ def extract_category_and_amount(date: str) -> list[tuple[str, float]]:
     return list(categories.items())
 
 
-def get_year(date: tuple[int, int, int]) -> int:
-    return date[2]
-
-
-def get_month(date: tuple[int, int, int]) -> int:
-    return date[1]
-
-
-def get_day(date: tuple[int, int, int]) -> int:
-    return date[0]
-
-
-Date = tuple[int, int, int]
-
-
-def is_same_year(date1: Date, date2: Date) -> bool:
-    return get_year(date1) == get_year(date2)
-
-
-def is_same_month(date1: Date, date2: Date) -> bool:
-    return is_same_year(date1, date2) and get_month(date1) == get_month(date2)
-
-
-def is_not_later_parsed(date1: Date, date2: Date) -> bool:
-    if get_year(date1) != get_year(date2):
-        return get_year(date1) < get_year(date2)
-
-    if get_month(date1) != get_month(date2):
-        return get_month(date1) < get_month(date2)
-
-    return get_day(date1) <= get_day(date2)
-
-
 def is_earlier_than_target_date(transaction_date: str, target_date: str) -> bool:
-    parsed_transaction = extract_date(transaction_date)
-    parsed_target = extract_date(target_date)
-
-    if parsed_transaction is None or parsed_target is None:
+    transaction = extract_date(transaction_date)
+    target = extract_date(target_date)
+    if transaction is None or target is None:
         return False
+    transaction_parsed = [transaction[2], transaction[1]]
+    target_parsed = [target[2], target[1]]
+    same_month = transaction_parsed == target_parsed
+    not_later = transaction[0] <= target[0]
 
-    return is_same_month(parsed_transaction, parsed_target) and is_not_later_parsed(parsed_transaction, parsed_target)
+    return same_month and not_later
 
 
 def stats_handler(date: str) -> StatsResult:
@@ -366,52 +317,22 @@ def stats_handler(date: str) -> StatsResult:
     )
 
 
-def check_comma_in_front_or_back(maybe_float: str) -> bool:
-    return maybe_float[0] in ",." or maybe_float[-1] in ",."
-
-
-NUM_PARTS_NUMBER = 2
-
-
-def check_comma_in_middle(maybe_float: str) -> bool | None:
-    parts_number = len(maybe_float.split(","))
-    if "," in maybe_float and parts_number == NUM_PARTS_NUMBER:
-        return True
-    parts_number = len(maybe_float.split("."))
-    if "." in maybe_float and parts_number == NUM_PARTS_NUMBER:
-        return True
-    return None
-
-
-def check_empty_or_invalid(maybe_float: str) -> bool | None:
+def sum_into_float(maybe_float: str) -> float | None:
+    maybe_float = maybe_float.replace(",", ".")
     if len(maybe_float) == 0:
         return None
+    if maybe_float[0] == "." or maybe_float[-1] == ".":
+        return None
+    num_dots = 0
     for char in maybe_float:
-        if char not in "0123456789,." or maybe_float == " ":
+        if char == ".":
+            num_dots += 1
+        elif not char.isdigit():
             return None
-    for char in maybe_float:
-        if char in ".," and maybe_float.count(char) > 1:
-            return None
-    num_of_commas = maybe_float.count(",") + maybe_float.count(".")
-    if num_of_commas > 1:
+    if num_dots > 1:
         return None
-    return True
 
-
-def sum_into_float(maybe_float: str) -> float | None:
-    if check_empty_or_invalid(maybe_float) is None:
-        return None
-    num_of_commas = maybe_float.count(",") + maybe_float.count(".")
-    if (
-        ("." in maybe_float and check_comma_in_middle(maybe_float)) or num_of_commas == 0
-    ) and not check_comma_in_front_or_back(maybe_float):
-        return float(maybe_float)
-    num_parts = maybe_float.split(",")
-    before_comma = num_parts[0]
-    after_comma = num_parts[1]
-    if not check_comma_in_middle(maybe_float):
-        return None
-    return float(f"{before_comma}.{after_comma}")
+    return float(maybe_float)
 
 
 def format_category_stats(category_stats: CategoryStats) -> str:
@@ -449,8 +370,6 @@ def details_handler(date: str) -> str:
 LENGTH_OF_INCOME_COMMAND = 3
 LENGTH_OF_COST_COMMAND = 4
 LENGTH_OF_STATS_COMMAND = 2
-LENGTH_OF_UNKNOWN_COMMAND_LEFT_BOUNDARE = 4
-LENGTH_OF_UNKNOWN_COMMAND_RIGHT_BOUNDARE = 1
 
 
 def income(parts: list[str]) -> str:
