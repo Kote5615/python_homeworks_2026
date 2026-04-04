@@ -18,6 +18,7 @@ FIELD_DATE = "date"
 INCOME_VAL = "income"
 COST_VAL = "cost"
 Date = tuple[int, int, int]
+NUMS = ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
 
 EXPENSE_CATEGORIES = {
     "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
@@ -65,7 +66,7 @@ def check_date_format(maybe_dt: str) -> bool:
     if [len(part) for part in parts] != [2, 2, 4]:
         return False
     combined = "".join(parts)
-    return all(char in "0123456789" for char in combined)
+    return all(char in NUMS for char in combined)
 
 
 DAYS_IN_MONTH = (
