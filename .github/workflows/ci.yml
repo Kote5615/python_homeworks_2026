@@ -17,10 +17,9 @@ on:
         default: false
         type: boolean
   push:
-    branches: [main, master]
+    branches: [ "**" ]
   pull_request:
-    branches: [main, master]
-
+    branches: [ "**" ]
 jobs:
   detect-changes:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
