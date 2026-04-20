@@ -29,10 +29,10 @@ class BreakerError(Exception):
 
 class CircuitBreaker:
     def __init__(
-            self,
-            critical_count: int = 5,
-            time_to_recover: int = 30,
-            triggers_on: type[Exception] = Exception,
+        self,
+        critical_count: int = 5,
+        time_to_recover: int = 30,
+        triggers_on: type[Exception] = Exception,
     ):
         errors: list[ValueError] = []
         if not isinstance(critical_count, int) or critical_count <= 0:
@@ -51,9 +51,7 @@ class CircuitBreaker:
         self._fail_counter = 0
         self._blocked_at: datetime | None = None
 
-    def __call__(
-            self,
-            function: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
+    def __call__(self, function: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
         @functools.wraps(function)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R_co:
             func_name = self._build_function_name(function)
@@ -73,11 +71,7 @@ class CircuitBreaker:
 
         return wrapper
 
-    def _handle_failure(
-            self,
-            error: Exception,
-            func_name: str
-    ) -> None:
+    def _handle_failure(self, error: Exception, func_name: str) -> None:
         if not isinstance(error, self._triggers_on):
             return
 
@@ -115,8 +109,8 @@ class CircuitBreaker:
         )
 
     def _build_function_name(
-            self,
-            function: CallableWithMeta[P, R_co],
+        self,
+        function: CallableWithMeta[P, R_co],
     ) -> str:
         return f"{function.__module__}.{function.__name__}"
 
