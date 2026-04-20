@@ -1,6 +1,6 @@
-import json
 import functools
-from datetime import datetime, timezone
+import json
+from datetime import UTC, datetime
 from typing import Any, ParamSpec, Protocol, TypeVar
 from urllib.request import urlopen
 
@@ -57,7 +57,7 @@ class CircuitBreaker:
         @functools.wraps(function)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R_co:
             func_name = self._build_function_name(function)
-            current_time = datetime.now(timezone.utc)
+            current_time = datetime.now(UTC)
 
             self._restore_if_needed(current_time)
             self._check_if_blocked(func_name)
@@ -87,7 +87,7 @@ class CircuitBreaker:
     def _block_if_limit_reached(self, func_name: str, error: Exception) -> None:
         if self._fail_counter < self._critical_count:
             return
-        self._blocked_at = datetime.now(timezone.utc)
+        self._blocked_at = datetime.now(UTC)
 
         raise BreakerError(
             func_name=func_name,
