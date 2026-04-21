@@ -51,10 +51,7 @@ class FIFOPolicy(Policy[K]):
 
     @property
     def has_keys(self) -> bool:
-        if len(self._order) == 0:
-            return False
-        else:
-            return True
+        return len(self._order) != 0
 
 
 @dataclass
@@ -81,29 +78,35 @@ class LRUPolicy(Policy[K]):
 
     @property
     def has_keys(self) -> bool:
-        if len(self._order) == 0:
-            return False
-        else:
-            return True
+        return len(self._order) != 0
 
 
 @dataclass
 class LFUPolicy(Policy[K]):
     capacity: int = 5
     _key_counter: dict[K, int] = field(default_factory=dict, init=False)
+    _order: list[K] = field(default_factory=list, init=False)
 
     def register_access(self, key: K) -> None:
         count = self._key_counter.get(key, 0)
         self._key_counter[key] = count + 1
 
+        if key not in self._order:
+            self._order.append(key)
+
     def get_key_to_evict(self) -> K | None:
         if len(self._key_counter) <= self.capacity:
             return None
 
+        overflow_key = self._order[-1]
         min_key = None
         min_count = None
 
-        for key, count in self._key_counter.items():
+        for key in self._order:
+            if key == overflow_key:
+                continue
+
+            count = self._key_counter[key]
             if min_count is None or count < min_count:
                 min_key = key
                 min_count = count
@@ -112,16 +115,16 @@ class LFUPolicy(Policy[K]):
 
     def remove_key(self, key: K) -> None:
         self._key_counter.pop(key, None)
+        if key in self._order:
+            self._order.remove(key)
 
     def clear(self) -> None:
         self._key_counter.clear()
+        self._order.clear()
 
     @property
     def has_keys(self) -> bool:
-        if len(self._key_counter) == 0:
-            return False
-        else:
-            return True
+        return len(self._order) != 0
 
 
 class MIPTCache(Cache[K, V]):
