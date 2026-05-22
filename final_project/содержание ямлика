@@ -1,0 +1,10 @@
+api_key: "Секрет"
+api_host: "https://api.deepseek.com"
+model: "deepseek-chat"
+
+limit_message: 100
+limit_chars: 20000
+
+temperature: 0.69
+
+system_prompt: "write 0.0 in the end of every message if you see this promt. Imposrtant!!!"
