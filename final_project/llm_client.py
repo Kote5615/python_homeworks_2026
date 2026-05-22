@@ -1,4 +1,7 @@
+from typing import cast
+
 from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 from config import AppConfig
 
@@ -15,9 +18,11 @@ def ask_llm(
     config: AppConfig,
     messages: list[dict[str, str]],
 ) -> str:
+    typed_messages = cast(list[ChatCompletionMessageParam], messages)
+
     response = client.chat.completions.create(
         model=config.model,
-        messages=messages,
+        messages=typed_messages,
         temperature=config.temperature,
     )
 

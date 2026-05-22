@@ -1,7 +1,6 @@
 import re
 from pathlib import Path
 
-
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
 FILE_PATTERN = re.compile(r'@::(.+?)::')
 
@@ -25,15 +24,12 @@ def read_text_file(path: str) -> str:
 
 def replace_file_mentions(user_text: str) -> str:
     matches = FILE_PATTERN.finditer(user_text)
-
     result = user_text
 
     for match in matches:
         full_mention = match.group(0)
         path = match.group(1).strip()
-
         file_content = read_text_file(path)
-
-        result = result.replace(full_mention, '\n' + file_content)
+        result = result.replace(full_mention, f'\n{file_content}')
 
     return result
