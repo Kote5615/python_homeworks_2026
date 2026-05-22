@@ -47,7 +47,7 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Body", "f
 
 [lint]
 select = ["E", "F", "B", "Q"]
-ignore = ["Q003", "E712", "E711"]
+ignore = ["Q003", "E712", "E711", "E203"]
 fixable = ["ALL"]
 unfixable = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
