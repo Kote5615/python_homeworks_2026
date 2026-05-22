@@ -10,7 +10,7 @@ def split_by_len(text: str, chunk_len: int) -> list[str]:
     chunks = []
 
     for index in range(0, len(text), chunk_len):
-        chunks.append(text[index: index + chunk_len])
+        chunks.append(text[index : index + chunk_len])
 
     return chunks
 
@@ -21,7 +21,7 @@ def split_by_paragraphs(text: str, paragraph_count: int = 1) -> list[str]:
     chunks = []
 
     for index in range(0, len(paragraphs), paragraph_count):
-        chunk = '\n\n'.join(paragraphs[index: index + paragraph_count])
+        chunk = '\n\n'.join(paragraphs[index : index + paragraph_count])
         chunks.append(chunk)
 
     return chunks
