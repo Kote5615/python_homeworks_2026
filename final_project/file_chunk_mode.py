@@ -10,7 +10,7 @@ def split_by_len(text: str, chunk_len: int) -> list[str]:
     chunks = []
 
     for index in range(0, len(text), chunk_len):
-        chunks.append(text[index: index + chunk_len])
+        chunks.append(text[index : index + chunk_len])
 
     return chunks
 
@@ -21,7 +21,7 @@ def split_by_paragraphs(text: str, paragraph_count: int = 1) -> list[str]:
     chunks = []
 
     for index in range(0, len(paragraphs), paragraph_count):
-        chunk = '\n\n'.join(paragraphs[index: index + paragraph_count])
+        chunk = '\n\n'.join(paragraphs[index : index + paragraph_count])
         chunks.append(chunk)
 
     return chunks
@@ -46,9 +46,9 @@ def parse_file_chunk_command(command: str) -> tuple[str, int, bool]:
 
 
 def build_chunk_messages(
-        config: AppConfig,
-        user_prompt: str,
-        chunk: str,
+    config: AppConfig,
+    user_prompt: str,
+    chunk: str,
 ) -> list[dict[str, str]]:
     messages = []
 
@@ -114,10 +114,10 @@ def build_chunks(text: str, mode: str, value: int) -> list[str]:
 
 
 def ask_model_for_chunk(
-        client: OpenAI,
-        config: AppConfig,
-        user_prompt: str,
-        chunk: str,
+    client: OpenAI,
+    config: AppConfig,
+    user_prompt: str,
+    chunk: str,
 ) -> str | None:
     messages = build_chunk_messages(config, user_prompt, chunk)
 
@@ -145,11 +145,11 @@ def should_continue_chunks(auto_yes: bool) -> bool:
 
 
 def process_chunks(
-        client: OpenAI,
-        config: AppConfig,
-        chunks: list[str],
-        user_prompt: str,
-        auto_yes: bool,
+    client: OpenAI,
+    config: AppConfig,
+    chunks: list[str],
+    user_prompt: str,
+    auto_yes: bool,
 ) -> None:
     for chunk in chunks:
         answer = ask_model_for_chunk(client, config, user_prompt, chunk)
@@ -167,7 +167,7 @@ def process_chunks(
 
 
 def prepare_chunk_mode_data(
-        command: str,
+    command: str,
 ) -> tuple[list[str], str, bool] | None:
     settings = parse_file_chunk_settings(command)
 
@@ -189,9 +189,9 @@ def prepare_chunk_mode_data(
 
 
 def run_file_chunk_mode(
-        client: OpenAI,
-        config: AppConfig,
-        command: str,
+    client: OpenAI,
+    config: AppConfig,
+    command: str,
 ) -> None:
     chunk_mode_data = prepare_chunk_mode_data(command)
 
